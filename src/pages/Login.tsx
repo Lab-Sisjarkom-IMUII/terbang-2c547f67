@@ -131,13 +131,13 @@ const Login = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-background via-background to-primary/10">
+    <div className="relative min-h-[100dvh] safe-area overflow-hidden bg-gradient-to-br from-background via-background to-primary/10">
       {/* Dekorasi background berbentuk gradient blur */}
       <div className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-gradient-primary opacity-25 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 -right-24 h-80 w-80 rounded-full bg-gradient-primary opacity-20 blur-3xl" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.15] [background:radial-gradient(ellipse_at_top_left,rgba(99,102,241,.35),transparent_40%),radial-gradient(ellipse_at_bottom_right,rgba(16,185,129,.35),transparent_40%)]" />
 
-      <div className="container mx-auto px-6 py-16 relative">
+      <div className="container mx-auto px-4 md:px-6 py-10 md:py-16 relative">
         <div className="grid gap-10 items-center justify-center">
           <Card className="w-full max-w-md justify-self-center p-8 space-y-6 bg-card/80 backdrop-blur-sm border-primary/20 shadow-elegant">
             <div className="space-y-2 text-center">

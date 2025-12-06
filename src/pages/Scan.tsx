@@ -103,7 +103,7 @@ const Scan = () => {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] safe-area bg-background">
       <Navbar user={user} />
 
       <main className="container mx-auto px-4 py-8">
