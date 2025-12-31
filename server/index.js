@@ -1,10 +1,11 @@
 import dotenv from "dotenv";
+dotenv.config(); // Load .env at the very top before other imports
+
 import express from "express";
 import multer from "multer";
 import cors from "cors";
 import OpenAI from "openai";
-
-dotenv.config();
+import { supabase } from "./supabaseClient.js";
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -91,21 +92,23 @@ Jangan keluarkan teks lain selain JSON valid.`;
   }
 });
 
-// Proxy endpoint to fetch monthly reports from Supabase REST API
+// Endpoint to fetch monthly reports using Supabase client (server-side)
 app.get("/api/monthly-reports", async (req, res) => {
   try {
-    const SUPABASE_URL = process.env.SUPABASE_URL;
-    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
-    if (!SUPABASE_URL || !SUPABASE_KEY) return res.status(500).json({ error: "Supabase not configured (SUPABASE_URL / SUPABASE_SERVICE_KEY)" });
+    if (!supabase) return res.status(500).json({ error: 'Supabase not configured on server. Set SUPABASE_URL and SUPABASE_SERVICE_KEY in .env' });
 
-    const apiUrl = `${SUPABASE_URL.replace(/\/+$/, '')}/rest/v1/monthly_reports?select=*&order=year.desc,month.desc`;
-    const r = await fetch(apiUrl, { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
-    if (!r.ok) {
-      const text = await r.text();
-      return res.status(502).json({ error: 'Supabase request failed', detail: text });
+    const { data, error } = await supabase
+      .from('monthly_reports')
+      .select('*')
+      .order('year', { ascending: false })
+      .order('month', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(502).json({ error: 'Supabase request failed', detail: error.message });
     }
-    const data = await r.json();
-    res.json(data);
+
+    res.json(data || []);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
