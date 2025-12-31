@@ -23,6 +23,89 @@
 
   <body>
     <div id="root"></div>
+
+    <!-- PWA-only entry animation overlay -->
+    <div id="pwa-entry-overlay" aria-hidden="true">
+      <div class="pwa-entry-inner">
+        <img id="pwa-entry-icon" src="/favicon.ico" alt="app icon" />
+      </div>
+    </div>
+
+    <script>
+      (function(){
+        var overlay = document.getElementById('pwa-entry-overlay');
+        var icon = document.getElementById('pwa-entry-icon');
+
+        function isPWA() {
+          return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+            || window.navigator.standalone === true
+            || document.referrer.startsWith('android-app://');
+        }
+
+        if (!overlay) return;
+
+        // If not running as PWA, remove overlay immediately.
+        if (!isPWA()) {
+          overlay.style.display = 'none';
+          return;
+        }
+
+        // Start visible (flex) and trigger animation after short delay so assets load.
+        overlay.style.display = 'flex';
+
+        // Add class to start animation; fallback to timeout if animation events not supported.
+        function start() {
+          if (icon) icon.classList.add('pwa-entry-animate');
+          var called = false;
+          function done() {
+            if (called) return; called = true;
+            overlay.classList.add('pwa-entry-hide');
+          }
+          icon && icon.addEventListener('animationend', done);
+          // safety timeout: remove after 2s
+          setTimeout(done, 2000);
+        }
+
+        // Remove overlay from DOM after fade-out transition.
+        overlay.addEventListener('transitionend', function(e){
+          if (e.propertyName === 'opacity' && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        });
+
+        // Wait for DOM/content to be ready.
+        if (document.readyState === 'complete' || document.readyState === 'interactive') start();
+        else document.addEventListener('DOMContentLoaded', start);
+      })();
+    </script>
+
+    <style>
+      #pwa-entry-overlay {
+        position:fixed;
+        inset:0;
+        display:none;
+        align-items:center;
+        justify-content:center;
+        background:var(--pwa-overlay-bg, #ffffff);
+        z-index:99999;
+        transition:opacity .35s ease, visibility .35s ease;
+        opacity:1;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #pwa-entry-overlay.pwa-entry-hide { opacity:0; visibility:hidden; pointer-events:none; }
+      .pwa-entry-inner { display:flex; align-items:center; justify-content:center; }
+      #pwa-entry-icon { width:72px; height:72px; display:block; transform-origin:center center; }
+
+      @keyframes pwa-pop {
+        0% { transform: scale(.6) rotate(-10deg); opacity:0 }
+        40% { transform: scale(1.05) rotate(6deg); opacity:1 }
+        70% { transform: scale(.96) rotate(-2deg); }
+        100% { transform: scale(1) rotate(0deg); opacity:1 }
+      }
+      .pwa-entry-animate {
+        animation: pwa-pop .9s cubic-bezier(.2,.9,.3,1) both;
+        will-change: transform, opacity;
+      }
+    </style>
+
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
