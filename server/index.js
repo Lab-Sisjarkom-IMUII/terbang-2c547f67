@@ -152,6 +152,142 @@ Jangan keluarkan teks lain selain JSON valid.`;
     }
   });
 
+  // USERS API
+  app.post("/api/users", async (req, res) => {
+    try {
+      if (!supabase) return res.status(200).json({ ok: false });
+      const { email, name, avatar, password } = req.body || {};
+      if (!email) return res.status(400).json({ error: "Missing fields" });
+      const { error } = await supabase.from("users").upsert(
+        { email, name: name || null, avatar: avatar || null, password: password || null },
+        { onConflict: "email" },
+      );
+      if (error) throw error;
+      res.json({ ok: true });
+    } catch (e) {
+      res.json({ ok: false });
+    }
+  });
+
+  app.get("/api/users", async (req, res) => {
+    try {
+      if (!supabase) return res.status(200).json({ ok: false, user: null });
+      const { email } = req.query || {};
+      if (!email) return res.status(400).json({ error: "Missing email" });
+      const { data, error } = await supabase.from("users").select("*").eq("email", email).limit(1);
+      if (error) throw error;
+      res.json({ ok: true, user: data?.[0] || null });
+    } catch (e) {
+      res.json({ ok: false, user: null });
+    }
+  });
+
+  // SCANS API
+  app.post("/api/scans", async (req, res) => {
+    try {
+      if (!supabase) return res.status(200).json({ ok: false });
+      const { email, productName, identifiedName, status, confidence, image } = req.body || {};
+      if (!email || !identifiedName) return res.status(400).json({ error: "Missing fields" });
+      const payload = {
+        email,
+        product_name: productName || null,
+        identified_name: identifiedName,
+        status: status || "unknown",
+        confidence: typeof confidence === "number" ? confidence : null,
+        image: image || null,
+        created_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("scans").insert(payload);
+      if (error) throw error;
+      res.json({ ok: true });
+    } catch (e) {
+      res.json({ ok: false });
+    }
+  });
+
+  app.get("/api/scans", async (req, res) => {
+    try {
+      if (!supabase) return res.status(200).json({ ok: false, items: [] });
+      const { email } = req.query || {};
+      if (!email) return res.status(400).json({ error: "Missing email" });
+      const { data, error } = await supabase
+        .from("scans")
+        .select("*")
+        .eq("email", email)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      res.json({ ok: true, items: data || [] });
+    } catch (e) {
+      res.json({ ok: false, items: [] });
+    }
+  });
+
+  // PRODUCTS API
+  // GET /api/products
+  app.get("/api/products", async (req, res) => {
+    try {
+      if (!supabase) return res.status(500).json({ error: 'Supabase is null' });
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('id', { ascending: false });
+      if (error) throw error;
+      res.json(data);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/products
+  app.post("/api/products", async (req, res) => {
+    try {
+      if (!supabase) return res.status(500).json({ error: 'Supabase is null' });
+      const { name, category, stock, price, image, description, salesTrend } = req.body;
+      const { data, error } = await supabase
+        .from('products')
+        .insert([{ name, category, stock, price, image, description, salesTrend }])
+        .select();
+      if (error) throw error;
+      res.json(data[0]);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PUT /api/products
+  app.put("/api/products", async (req, res) => {
+    try {
+      if (!supabase) return res.status(500).json({ error: 'Supabase is null' });
+      const { id, name, category, stock, price, image, description, salesTrend } = req.body;
+      const { data, error } = await supabase
+        .from('products')
+        .update({ name, category, stock, price, image, description, salesTrend })
+        .eq('id', id)
+        .select();
+      if (error) throw error;
+      res.json(data[0]);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // DELETE /api/products
+  app.delete("/api/products", async (req, res) => {
+    try {
+      if (!supabase) return res.status(500).json({ error: 'Supabase is null' });
+      const { id } = req.query;
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      res.json({ message: 'Product deleted' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
     console.log(`✅ AI Scan server running on http://localhost:${PORT}`);

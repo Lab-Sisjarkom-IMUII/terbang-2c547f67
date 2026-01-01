@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { mockProducts } from "@/lib/mockData";
-import { supabase } from "@/lib/supabaseClient";
+import { getProductsFromDatabase, addProductToDatabase, updateProductInDatabase, deleteProductFromDatabase, DBProduct } from "@/lib/database";
 
 type User = { name: string; email: string; avatar: string };
 type Product = {
@@ -55,36 +55,37 @@ const Products = () => {
     }
     setUser(JSON.parse(userData));
 
-    // Load products from Supabase
+    // Load products from Database via API
     const loadProducts = async () => {
       try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .order('id', { ascending: false });
-
-        if (error) {
-          console.error('Error loading products from Supabase:', error);
-          // Fallback to localStorage if Supabase fails
-          const savedProducts = localStorage.getItem("products");
-          if (savedProducts) {
-            setProducts(JSON.parse(savedProducts));
-          } else {
-            setProducts(mockProducts);
-            localStorage.setItem("products", JSON.stringify(mockProducts));
-          }
-        } else {
-          // Successfully loaded from Supabase
-          const productsData = data || [];
-          setProducts(productsData);
+        const productsData = await getProductsFromDatabase();
+        if (productsData && Array.isArray(productsData)) {
+          // Map DBProduct to Product (ensure required fields)
+          const mappedProducts: Product[] = productsData.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            stock: p.stock,
+            price: p.price,
+            image: p.image || "",
+            description: p.description,
+            salesTrend: p.salesTrend
+          }));
+          setProducts(mappedProducts);
           // Sync to localStorage as cache
-          localStorage.setItem("products", JSON.stringify(productsData));
+          localStorage.setItem("products", JSON.stringify(mappedProducts));
         }
       } catch (err) {
-        console.error('Error:', err);
+        console.error('Error loading products:', err);
         // Fallback to localStorage
         const savedProducts = localStorage.getItem("products");
-        setProducts(savedProducts ? JSON.parse(savedProducts) : mockProducts);
+        if (savedProducts) {
+          setProducts(JSON.parse(savedProducts));
+        } else {
+          setProducts(mockProducts);
+          localStorage.setItem("products", JSON.stringify(mockProducts));
+        }
+        toast.error("Gagal memuat produk dari database, menggunakan data lokal");
       }
     };
 
@@ -138,35 +139,34 @@ const Products = () => {
 
     try {
       if (editingProduct) {
-        // Update existing product in Supabase
-        const { error } = await supabase
-          .from('products')
-          .update({
-            name: formData.name,
-            category: formData.category,
-            stock: formData.stock,
-            price: formData.price,
-            image: formData.image,
-            description: formData.description
-          })
-          .eq('id', editingProduct.id);
+        // Update existing product in Database
+        const updatedProduct: DBProduct = {
+          id: editingProduct.id,
+          name: formData.name,
+          category: formData.category,
+          stock: formData.stock,
+          price: formData.price,
+          image: formData.image,
+          description: formData.description,
+          salesTrend: editingProduct.salesTrend
+        };
 
-        if (error) {
-          console.error('Error updating product:', error);
-          toast.error("Gagal update produk ke database");
-          return;
+        const result = await updateProductInDatabase(updatedProduct);
+
+        if (!result) {
+           throw new Error("Gagal update produk");
         }
 
         // Update local state
         const updated = products.map(p =>
-          p.id === editingProduct.id ? { ...formData, id: editingProduct.id } : p
+          p.id === editingProduct.id ? { ...p, ...updatedProduct } as Product : p
         );
         setProducts(updated);
         localStorage.setItem("products", JSON.stringify(updated));
         toast.success("Produk berhasil diupdate!");
       } else {
-        // Insert new product to Supabase
-        const newProduct = {
+        // Insert new product to Database
+        const newProduct: DBProduct = {
           name: formData.name,
           category: formData.category,
           stock: formData.stock,
@@ -176,24 +176,27 @@ const Products = () => {
           salesTrend: "+0%"
         };
 
-        const { data, error } = await supabase
-          .from('products')
-          .insert([newProduct])
-          .select();
+        const result = await addProductToDatabase(newProduct);
 
-        if (error) {
-          console.error('Error adding product:', error);
-          toast.error("Gagal menambahkan produk ke database");
-          return;
+        if (!result) {
+           throw new Error("Gagal menambah produk");
         }
 
         // Update local state with the new product (including the ID from database)
-        const insertedProduct = data?.[0];
-        if (insertedProduct) {
-          const updated = [insertedProduct, ...products];
-          setProducts(updated);
-          localStorage.setItem("products", JSON.stringify(updated));
-        }
+        const insertedProduct: Product = {
+            id: result.id,
+            name: result.name,
+            category: result.category,
+            stock: result.stock,
+            price: result.price,
+            image: result.image || "",
+            description: result.description,
+            salesTrend: result.salesTrend
+        };
+
+        const updated = [insertedProduct, ...products];
+        setProducts(updated);
+        localStorage.setItem("products", JSON.stringify(updated));
         toast.success("Produk berhasil ditambahkan!");
       }
 
@@ -219,17 +222,8 @@ const Products = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      // Delete from Supabase
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting product:', error);
-        toast.error("Gagal menghapus produk dari database");
-        return;
-      }
+      // Delete from Database
+      await deleteProductFromDatabase(id);
 
       // Update local state
       const updated = products.filter(p => p.id !== id);

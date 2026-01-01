@@ -31,3 +31,47 @@ export async function addScanRecord(payload: {
   });
 }
 
+export type DBProduct = {
+  id?: string;
+  name: string;
+  category: string;
+  stock: number;
+  price: number;
+  image?: string;
+  description?: string;
+  salesTrend?: string;
+};
+
+export async function getProductsFromDatabase() {
+  const res = await fetch("/api/products");
+  if (!res.ok) throw new Error("Failed to fetch products");
+  return res.json();
+}
+
+export async function addProductToDatabase(product: DBProduct) {
+  const res = await fetch("/api/products", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(product),
+  });
+  if (!res.ok) throw new Error("Failed to add product");
+  return res.json();
+}
+
+export async function updateProductInDatabase(product: DBProduct) {
+  const res = await fetch("/api/products", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(product),
+  });
+  if (!res.ok) throw new Error("Failed to update product");
+  return res.json();
+}
+
+export async function deleteProductFromDatabase(id: string) {
+  const res = await fetch(`/api/products?id=${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete product");
+  return res.json();
+}
