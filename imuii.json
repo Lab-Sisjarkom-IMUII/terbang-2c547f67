@@ -1,0 +1,11 @@
+{
+  "name": "terbang",
+  "framework": "react",
+  "language": "typescript",
+  "buildCommand": "npm run build",
+  "startCommand": "npm run dev",
+  "domain": "terbang",
+  "email": "daffaulhaq5656@gmail.com",
+  "secretKey": "imuii_c78aa8f9c4cc3453f6f3bb591371eabd3d8e616689094c34658e27f0bb93d330",
+  "repoUrl": "https://github.com/Lab-Sisjarkom-IMUII/terbang-2c547f67.git"
+}
