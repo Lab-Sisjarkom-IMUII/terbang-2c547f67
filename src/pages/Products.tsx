@@ -201,9 +201,9 @@ const Products = () => {
       }
 
       resetForm();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error:', err);
-      toast.error("Terjadi kesalahan saat menyimpan produk");
+      toast.error(`Gagal menyimpan produk: ${err.message}`);
     }
   };
 

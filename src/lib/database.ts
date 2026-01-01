@@ -54,7 +54,10 @@ export async function addProductToDatabase(product: DBProduct) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(product),
   });
-  if (!res.ok) throw new Error("Failed to add product");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(err.error || "Failed to add product");
+  }
   return res.json();
 }
 
@@ -64,7 +67,10 @@ export async function updateProductInDatabase(product: DBProduct) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(product),
   });
-  if (!res.ok) throw new Error("Failed to update product");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(err.error || "Failed to update product");
+  }
   return res.json();
 }
 
@@ -72,6 +78,9 @@ export async function deleteProductFromDatabase(id: string) {
   const res = await fetch(`/api/products?id=${id}`, {
     method: "DELETE",
   });
-  if (!res.ok) throw new Error("Failed to delete product");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(err.error || "Failed to delete product");
+  }
   return res.json();
 }
